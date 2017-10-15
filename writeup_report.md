@@ -14,12 +14,12 @@ The goals / steps of this project are the following:
 [//]: # (Image References)
 
 [image1]: ./examples/undistort_output_mrl.png "Undistorted"
-[image2]: ./examples/test1_undist_mrl.jpg "Road Transformed"
-[image3]: ./examples/binary_combo_example_mrl.jpg "Binary Example"
-[image4]: ./examples/warped_straight_lines_mrl.jpg "Warp Example"
-[image5]: ./examples/warped_straight_lines2_mrl.jpg "Warp Example 2"
-[image6]: ./examples/color_fit_lines.jpg "Fit Visual"
-[image7]: ./examples/example_output.jpg "Output"
+[image2]: ./examples/test1_undist_mrl.png "Road Transformed"
+[image3]: ./examples/binary_combo_example_mrl.png "Binary Example"
+[image4]: ./examples/warped_straight_lines_mrl.png "Warp Example"
+[image5]: ./examples/warped_straight_lines2_mrl.png "Warp Example 2"
+[image6]: ./examples/polyfit_output_mrl.png "Poly-Fit Visual"
+[image7]: ./examples/example_frame_output_mrl.png "Frame Drawn Output"
 [video1]: ./project_video.mp4 "Video"
 
 ## [Rubric](https://review.udacity.com/#!/rubrics/571/view) Points
@@ -92,17 +92,24 @@ I verified that my perspective transform was working as expected by drawing the 
 
 #### 4. Describe how (and identify where in your code) you identified lane-line pixels and fit their positions with a polynomial?
 
-Then I did some other stuff and fit my lane lines with a 2nd order polynomial kinda like this:
+In the section titled "7) Polynomial Fit Find Function", the function polyfit_find() is defined to find the lane lines in the input image result of the undistorted, unwarped, top down, binary image.  Right and left lines are searched using a window margin left and right of center making use of histogram maximum peaks.  Nine horizontal line sections are used.
+
+My implementation searches for lane lines on each frame, while a clear optimization would be to make use of frame to frame cohearance to avoid the searching on every frame.
+
+A polynomial is then fit to the centroid of each window and used to calculate the frame by frame video overlay polygon.
+
+An image view of the processing, including the histogram details:
 
 ![alt text][image6]
 
 #### 5. Describe how (and identify where in your code) you calculated the radius of curvature of the lane and the position of the vehicle with respect to center.
 
-I did this in lines # through # in my code in `my_other_file.py`
+The functions to calculate lane curvature (get_curvature()) and offset from center (get_dist()), can be found in P3.ipynb and the cell titled "8) Measuring Curvature".
 
 #### 6. Provide an example image of your result plotted back down onto the road such that the lane area is identified clearly.
 
-I implemented this step in lines # through # in my code in `yet_another_file.py` in the function `map_lane()`.  Here is an example of my result on a test image:
+I implemented plotting back to the road directly in the `process_image2()` function in the step labeled `10) Putting It All Together`. cv2.fillPoly() is used to draw the polgon created from the returned values of polyfit_find().
+Here is an example of my result on a test image:
 
 ![alt text][image7]
 
@@ -112,7 +119,7 @@ I implemented this step in lines # through # in my code in `yet_another_file.py`
 
 #### 1. Provide a link to your final video output.  Your pipeline should perform reasonably well on the entire project video (wobbly lines are ok but no catastrophic failures that would cause the car to drive off the road!).
 
-Here's a [link to my video result](./project_video.mp4)
+Here's a [link to my video result](./output_images/project3_video.mp4)
 
 ---
 
@@ -120,4 +127,15 @@ Here's a [link to my video result](./project_video.mp4)
 
 #### 1. Briefly discuss any problems / issues you faced in your implementation of this project.  Where will your pipeline likely fail?  What could you do to make it more robust?
 
-Here I'll talk about the approach I took, what techniques I used, what worked and why, where the pipeline might fail and how I might improve it if I were going to pursue this project further.  
+Here I'll talk about the approach I took, what techniques I used, what worked and why, where the pipeline might fail and how I might improve it if I were going to pursue this project further.
+
+My approach was to implement the course outline materials in sections making use of Jupyter cells to confirm results.  The following cells need to be run in order: `1) Camera Calibration`, `2) Undistort Function`, `3) Threshold Gradient Pipeline`, `4) Unwarp Function`, `7) Polynomial Fit Find Function`, `8) Measure Curvature`, `9) Tracking Class`, `10) Putting It All Together` and finally `11) Process Video`.
+
+After debugging all of the main components, the best improvement to the final video mask calculation was the implementation of 5 frame averaging and the rejection of bad polygon fits (lane lines not found).  I used Python collections.deque() to store and remove the five polyfits to average.  See the cell labeled `9) Tracking Class` which also stores lane line information over the video processing.
+
+I had major delays intially getting the video to process as the overlay mask was not changing frame to frame and then wasn't being calculated correctly.  Eventually, I figured out that there was an issue with Jupyter's cell to cell global variables.
+
+The video shows that the lane lines overlays are not perfect with little edge wiggles most likely due to shadows.  This would indicate that more work could be done augmenting the threshold gradient algorithm possibly using different color channels to pop the lane lines even more around shadows.  The current algorithm uses Sobel x on the HLS lightness channel.
+The overall pipeline could also be made more efficient frame to frame as outlined in the course notes with the unused function `polyfit_next()` in the cell labeled `7a) Polynomial Fit Next Frame`.
+
+This pipeline, while it works for the current video, will have issues if the first frame doesn't have clear lane lines.  Curvature may also have issues with hills as the perspective view is assumed to be flat.
